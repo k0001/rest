@@ -43,7 +43,9 @@ resource = mkResourceReader
 
 get :: Handler WithPost
 get = mkIdHandler xmlJsonO $ \_ ident -> do
-  psts <- liftIO . atomically . readTVar =<< (lift . lift) (asks posts)
+
+  -- psts <- liftIO . atomically . readTVar =<< (lift . lift) (asks posts)
+  let psts = undefined
   let au = filter (\p -> Post.id p == ident) . Set.toList $ psts
   case au of
     []    -> throwError NotFound
@@ -52,14 +54,14 @@ get = mkIdHandler xmlJsonO $ \_ ident -> do
 -- | List Posts with the most recent posts first.
 list :: ListHandler BlogApi
 list = mkListing xmlJsonO $ \r -> do
-  psts <- liftIO . atomically . readTVar =<< asks posts
+  psts <- undefined -- liftIO . atomically . readTVar =<< asks posts
   return . take (count r) . drop (offset r) . sortBy (flip $ comparing Post.createdTime) . Set.toList $ psts
 
 create :: Handler BlogApi
 create = mkInputHandler (xmlJsonE . xmlJson) $ \(UserPost usr pst) -> do
   -- Make sure the credentials are valid
   checkLogin usr
-  pstsVar <- asks posts
+  pstsVar <- undefined -- asks posts
   psts <- liftIO . atomically . readTVar $ pstsVar
   post <- liftIO $ toPost (Set.size psts + 1) usr pst
   -- Validate and save the post in the same transaction.
@@ -99,5 +101,5 @@ validContent = (>= 1) . T.length . CreatePost.content
 -- | Throw an error if the user isn't logged in.
 checkLogin :: User -> ErrorT (Reason e) BlogApi ()
 checkLogin usr = do
-  usrs <- liftIO . atomically . readTVar =<< asks users
-  unless (usr `F.elem` usrs) $ throwError NotAllowed
+  usrs <- undefined -- liftIO . atomically . readTVar =<< asks users
+  undefined -- unless (usr `F.elem` usrs) $ throwError NotAllowed

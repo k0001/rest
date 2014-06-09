@@ -2,17 +2,12 @@
 module ApiTypes where
 
 import Control.Applicative (Applicative)
-import Control.Concurrent.STM (TVar)
 import Control.Monad.Reader (MonadReader, ReaderT (..))
 import Control.Monad.Trans (MonadIO)
-import Data.Set (Set)
-
-import Type.Post (Post)
-import Type.User (User)
+import Database.PostgreSQL.Simple as PG
 
 data ServerData = ServerData
-  { users :: TVar (Set User)
-  , posts :: TVar (Set Post)
+  { pgConn :: PG.Connection
   }
 
 newtype BlogApi a = BlogApi { unBlogApi :: ReaderT ServerData IO a }

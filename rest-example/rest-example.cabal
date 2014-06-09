@@ -47,6 +47,14 @@ library
     , time
     , transformers-base
 
+    , haskelldb
+    , karamaan-opaleye
+    -- , karamaan-plankton
+    , bytestring
+    , profunctors
+    , product-profunctors
+    , postgresql-simple
+
 -------------------------------------------------------------------------------
 -- Executables linking against the rest-example library.
 
@@ -139,4 +147,3 @@ executable rest-example-gen
       , rest-gen
   else
     buildable: False
-
