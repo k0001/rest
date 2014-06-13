@@ -22,6 +22,7 @@ library
     Api.Post
     Api.User
     ApiTypes
+    Db
     Example
     Type.CreatePost
     Type.Post
@@ -46,6 +47,8 @@ library
     , text
     , time
     , transformers-base
+    , transformers
+    , old-locale
 
     , haskelldb
     , karamaan-opaleye
