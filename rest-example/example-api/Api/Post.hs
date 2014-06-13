@@ -1,19 +1,13 @@
 {-# LANGUAGE Arrows, FlexibleContexts, ScopedTypeVariables #-}
 module Api.Post (resource) where
 
-import Control.Concurrent.STM (atomically, modifyTVar, readTVar)
-import Control.Monad (unless)
-import Control.Applicative
 import Control.Monad.Error (ErrorT, throwError)
 import Control.Monad.Reader
-import Control.Monad.Trans
 import Data.List (sortBy, find)
 import Data.Ord (comparing)
-import Data.Set (Set)
 import System.Locale
 import Data.Time
 import qualified Data.Foldable as F
-import qualified Data.Set      as Set
 import qualified Data.Text     as T
 import Data.Text (Text)
 
@@ -31,30 +25,16 @@ import qualified Type.CreatePost as CreatePost
 import qualified Type.Post       as Post
 import qualified Type.User       as User
 
-import Control.Arrow (arr, (&&&), returnA)
-import Control.Category ((<<<))
-import Data.Profunctor (dimap)
-import Data.Profunctor.Product (PPOfContravariant, ProductProfunctor, p2, p5)
-import Data.Profunctor.Product.Default (Default, def)
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Time.Calendar (Day)
+import Control.Arrow
 import Database.HaskellDB.Query (ShowConstant(..))
 import Database.HaskellDB.PrimQuery (Literal (..))
 import Karamaan.Opaleye.Manipulation (executeInsertConnDef)
-import Karamaan.Opaleye.Nullable (Nullable)
-import Karamaan.Opaleye.QueryArr (Query, QueryArr)
 import Karamaan.Opaleye.RunQuery as RQ
-import Karamaan.Opaleye.SQL (showSqlForPostgresDefault)
-import Karamaan.Opaleye.Table (Table(Table), makeTableDef, queryTable)
-import Karamaan.Opaleye.Unpackspec (Unpackspec)
+import Karamaan.Opaleye.Table
 import Karamaan.Opaleye.Wire (Wire(Wire))
-import qualified Database.PostgreSQL.Simple as SQL
 import qualified Database.PostgreSQL.Simple.Transaction as PG
 import qualified Karamaan.Opaleye.ExprArr as ExprArr
 import Karamaan.Opaleye.ExprArr (constant)
-import qualified Karamaan.Opaleye.Operators.Numeric as N
-import qualified Karamaan.Opaleye.Operators2 as Op2
-import qualified Karamaan.Opaleye.Predicates as P
 
 -- | Post extends the root of the API with a reader containing the ways to identify a Post in our URLs.
 -- Currently only by the title of the post.
@@ -72,7 +52,6 @@ resource = mkResourceReader
 
 postTable :: Table (Wire Int, Wire Text, Wire UTCTime, Wire Post.Title, Wire Text)
 postTable = Table "posts" (Wire "id", Wire "author", Wire "created_time", Wire "title", Wire "content")
-
 
 fromTable (a,b,c,d,e) = Post a b c d e
 
