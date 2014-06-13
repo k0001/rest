@@ -1,6 +1,5 @@
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
 module Api.User (resource) where
 
 import Control.Applicative ((<$>))
@@ -13,7 +12,6 @@ import Data.Set (Set)
 import qualified Data.Foldable as F
 import qualified Data.Set      as Set
 import qualified Data.Text     as T
-import qualified Database.PostgreSQL.Simple.Transaction as PG
 
 import Rest (Handler, ListHandler, Range (count, offset), Resource, Void, domainReason, mkInputHandler, mkListing, mkResourceReader, named, singleRead,
              withListing, xmlJsonE, xmlJsonI, xmlJsonO)
@@ -26,31 +24,28 @@ import Type.UserSignupError (UserSignupError (..))
 import qualified Type.User     as User
 import qualified Type.UserInfo as UserInfo
 
-
-import Prelude hiding (sum)
+import Control.Arrow (arr, (&&&), returnA)
+import Control.Category ((<<<))
+import Data.Profunctor (dimap)
+import Data.Profunctor.Product (PPOfContravariant, ProductProfunctor, p2, p5)
+import Data.Profunctor.Product.Default (Default, def)
+import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
+import Data.Time.Calendar (Day)
 import Database.HaskellDB.Query (ShowConstant(..))
-import Karamaan.Opaleye.Unpackspec (Unpackspec)
-import Karamaan.Opaleye.Table (Table(Table), makeTableDef, queryTable)
-import Karamaan.Opaleye.QueryArr (Query, QueryArr)
-import qualified Karamaan.Opaleye.ExprArr as ExprArr
+import Karamaan.Opaleye.Manipulation (executeInsertConnDef)
 import Karamaan.Opaleye.Nullable (Nullable)
+import Karamaan.Opaleye.QueryArr (Query, QueryArr)
+import Karamaan.Opaleye.RunQuery as RQ
+import Karamaan.Opaleye.SQL (showSqlForPostgresDefault)
+import Karamaan.Opaleye.Table (Table(Table), makeTableDef, queryTable)
+import Karamaan.Opaleye.Unpackspec (Unpackspec)
+import Karamaan.Opaleye.Wire (Wire(Wire))
+import qualified Database.PostgreSQL.Simple as SQL
+import qualified Database.PostgreSQL.Simple.Transaction as PG
+import qualified Karamaan.Opaleye.ExprArr as ExprArr
+import qualified Karamaan.Opaleye.Operators.Numeric as N
 import qualified Karamaan.Opaleye.Operators2 as Op2
 import qualified Karamaan.Opaleye.Predicates as P
-import Karamaan.Opaleye.Manipulation (executeInsertConnDef)
-import qualified Karamaan.Opaleye.Operators.Numeric as N
-import Karamaan.Opaleye.Wire (Wire(Wire))
-import Karamaan.Opaleye.SQL (showSqlForPostgresDefault)
-import Control.Category ((<<<))
-import Control.Arrow (arr, (&&&), returnA)
-import Data.Time.Calendar (Day)
-
-import Data.Profunctor.Product.TH (makeAdaptorAndInstance)
-import Data.Profunctor.Product (PPOfContravariant, ProductProfunctor, p2, p5)
-import Data.Profunctor (dimap)
-import Data.Profunctor.Product.Default (Default, def)
-import qualified Database.PostgreSQL.Simple as SQL
-import Karamaan.Opaleye.RunQuery as RQ
-
 
 -- | User extends the root of the API with a reader containing the ways to identify a user in our URLs.
 -- Currently only by the user name.
@@ -91,9 +86,9 @@ create = mkInputHandler ({-xmlJsonE . -} xmlJsonO . xmlJsonI) $ \usr -> do
   _<- liftIO $ PG.withTransaction pgConn $ do
      let insertExpr :: ExprArr.Expr (Maybe (Wire User.Name), Maybe (Wire User.Name))
          insertExpr = proc () -> do
-            name <- ExprArr.constant (User.name usr) -< ()
+            name     <- ExprArr.constant (User.name usr) -< ()
             password <- ExprArr.constant (User.password usr) -< ()
-            returnA -< (Just name, Just password)
+            returnA  -< (Just name, Just password)
      executeInsertConnDef pgConn usersTable insertExpr
   return $ toUserInfo usr
 
