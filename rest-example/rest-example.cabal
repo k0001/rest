@@ -60,7 +60,7 @@ library
 
 flag happstack
   description: Build the rest on happstack example.
-  default:     False
+  default:     True
   manual:      True
 
 flag wai
