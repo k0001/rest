@@ -25,7 +25,6 @@ import qualified Karamaan.Opaleye.ExprArr               as ExprArr
 
 import ApiTypes
 import Type.Post (Post (Post))
-import Type.User (User (User))
 import qualified Type.Post as Post
 import qualified Type.User as User
 
@@ -61,34 +60,3 @@ createPost post = do
           content <- constant (Post.content post) -< ()
           returnA -< (Nothing, Just author, Just time, Just title, Just content)
     void $ executeInsertConnDef pg postTable insertExpr
-
-usersTable :: Table (Wire T.Text, Wire T.Text)
-usersTable = Table "users" (Wire "name", Wire "password")
-
-fromUsersTable (name, password) = User.User name password
-
-selectAllUsers :: BlogApi [User]
-selectAllUsers = do
-  pg <- asks pgConn
-  fmap (fmap fromUsersTable) . liftIO . RQ.runQueryDefault (queryTable usersTable) $ pg
-
-createUser :: User -> BlogApi ()
-createUser usr = do
-  pgConn <- asks pgConn
-  liftIO $ PG.withTransaction pgConn $ do
-     let insertExpr :: ExprArr.Expr (Maybe (Wire User.Name), Maybe (Wire User.Name))
-         insertExpr = proc () -> do
-            name     <- ExprArr.constant (User.name usr) -< ()
-            password <- ExprArr.constant (User.password usr) -< ()
-            returnA  -< (Just name, Just password)
-     void $ executeInsertConnDef pgConn usersTable insertExpr
-
-  -- usrs <- undefined -- asks users
-  -- merr <- liftIO . atomically $ do
-  --   vu <- validUserName usr <$> readTVar usrs
-  --   if not (validPassword usr)
-  --     then return . Just $ domainReason (const 400) InvalidPassword
-  --     else if not vu
-  --       then return . Just $ domainReason (const 400) InvalidUserName
-  --       else modifyTVar usrs (Set.insert usr) >> return Nothing
-  -- maybe (return $ toUserInfo usr) throwError merr
